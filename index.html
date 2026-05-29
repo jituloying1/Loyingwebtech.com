@@ -9,6 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
+
 *{
     margin:0;
     padding:0;
@@ -187,7 +188,13 @@ table th{
     color:white;
 }
 
+#customerPrintDetails p{
+    margin-bottom:8px;
+    font-size:16px;
+}
+
 @media(max-width:600px){
+
     .container{
         padding:20px;
     }
@@ -227,6 +234,7 @@ table th{
         font-size:14px;
     }
 }
+
 </style>
 </head>
 
@@ -241,21 +249,38 @@ table th{
 
 <div class="form-group">
     <label>Customer Name</label>
-    <input type="text" id="customerName" placeholder="Enter customer name">
+    <input type="text"
+    id="customerName"
+    placeholder="Enter customer name"
+    onkeyup="calculateTotal()">
 </div>
 
 <div class="form-group">
     <label>Phone Number</label>
-    <input type="tel" id="phone" placeholder="Enter customer phone number">
+    <input type="tel"
+    id="phone"
+    placeholder="Enter customer phone number"
+    onkeyup="calculateTotal()">
 </div>
 
 <div class="form-group">
     <label>Select Vehicle</label>
-    <select id="vehicle" onchange="loadServices()">
+
+    <select id="vehicle"
+    onchange="loadServices();calculateTotal()">
+
         <option value="">-- Select Vehicle --</option>
+
         <option value="Car">Car</option>
-        <option value="Bike / Scooter">Bike / Scooter</option>
-        <option value="Tractor">Tractor</option>
+
+        <option value="Bike / Scooter">
+            Bike / Scooter
+        </option>
+
+        <option value="Tractor">
+            Tractor
+        </option>
+
     </select>
 </div>
 
@@ -264,14 +289,46 @@ table th{
 <div class="bill-box">
 
     <div class="print-header">
+
         <h2>VIOMATICS MOTORS</h2>
+
         <p>Helpline Number: +91 3774354860</p>
-        <p>Emergency Contact Only: 9395870636</p>
+
+        <p>Emergency Contact: 9395870636</p>
+
     </div>
 
     <h2>Billing Summary</h2>
 
-    <div id="billDetails">No services selected</div>
+    <div id="customerPrintDetails">
+
+        <p>
+            <strong>Customer Name:</strong>
+            <span id="printCustomerName">-</span>
+        </p>
+
+        <p>
+            <strong>Phone Number:</strong>
+            <span id="printPhone">-</span>
+        </p>
+
+        <p>
+            <strong>Vehicle:</strong>
+            <span id="printVehicle">-</span>
+        </p>
+
+        <p>
+            <strong>Date:</strong>
+            <span id="printDate">-</span>
+        </p>
+
+    </div>
+
+    <hr style="margin:15px 0;">
+
+    <div id="billDetails">
+        No services selected
+    </div>
 
     <div class="total">
         Total: ₹<span id="totalAmount">0</span>
@@ -284,24 +341,36 @@ table th{
 </div>
 
 <div class="buttons">
-    <button class="print-btn" onclick="printBill()">Print Bill</button>
 
-    <button onclick="sendWhatsApp()">Send WhatsApp Bill</button>
+    <button class="print-btn"
+    onclick="printBill()">
+        Print Bill
+    </button>
 
-    <button class="download-btn" onclick="downloadExcel()">
+    <button onclick="sendWhatsApp()">
+        Send WhatsApp Bill
+    </button>
+
+    <button class="download-btn"
+    onclick="downloadExcel()">
         Download Excel Sheet
     </button>
+
 </div>
 
 <div class="search-box">
+
     <h2>Saved Bills</h2>
 
-    <input type="text" id="searchInput"
-    placeholder="Search by Name, Phone, Date, Amount..."
+    <input type="text"
+    id="searchInput"
+    placeholder="Search by Name, Phone, Date..."
     onkeyup="searchBills()">
 
     <table>
+
         <thead>
+
             <tr>
                 <th>SL No</th>
                 <th>Date</th>
@@ -311,10 +380,13 @@ table th{
                 <th>Services</th>
                 <th>Total</th>
             </tr>
+
         </thead>
 
         <tbody id="billTableBody"></tbody>
+
     </table>
+
 </div>
 
 </div>
@@ -324,35 +396,86 @@ table th{
 const serviceData = {
 
     "Car":[
-        {name:'Premium Full Wash (Foam + Vacuum)',price:300},
-        {name:'Interior Polishing',price:50},
-        {name:'Exterior Polishing',price:100},
-        {name:'Quick Exterior Wash (15 mins)',price:100},
-        {name:'Vacuuming Only',price:50}
+        {
+            name:'Premium Full Wash (Foam + Vacuum)',
+            price:300
+        },
+
+        {
+            name:'Interior Polishing',
+            price:50
+        },
+
+        {
+            name:'Exterior Polishing',
+            price:100
+        },
+
+        {
+            name:'Quick Exterior Wash (15 mins)',
+            price:100
+        },
+
+        {
+            name:'Vacuuming Only',
+            price:50
+        }
     ],
 
     "Tractor":[
-        {name:'Premium Full Wash (Foam + Vacuum)',price:300},
-        {name:'Interior Polishing',price:50},
-        {name:'Exterior Polishing',price:100},
-        {name:'Quick Exterior Wash (15 mins)',price:100},
-        {name:'Vacuuming Only',price:50}
+        {
+            name:'Premium Full Wash (Foam + Vacuum)',
+            price:300
+        },
+
+        {
+            name:'Interior Polishing',
+            price:50
+        },
+
+        {
+            name:'Exterior Polishing',
+            price:100
+        },
+
+        {
+            name:'Quick Exterior Wash (15 mins)',
+            price:100
+        },
+
+        {
+            name:'Vacuuming Only',
+            price:50
+        }
     ],
 
     "Bike / Scooter":[
-        {name:'Wash',price:70},
-        {name:'Polishing',price:30}
+        {
+            name:'Wash',
+            price:70
+        },
+
+        {
+            name:'Polishing',
+            price:30
+        }
     ]
 };
 
-let allBills = JSON.parse(localStorage.getItem('viomaticsBills')) || [];
+let allBills =
+JSON.parse(
+localStorage.getItem('viomaticsBills')
+) || [];
 
 renderBills();
 
 function loadServices(){
 
-    const vehicle = document.getElementById('vehicle').value;
-    const container = document.getElementById('servicesContainer');
+    const vehicle =
+    document.getElementById('vehicle').value;
+
+    const container =
+    document.getElementById('servicesContainer');
 
     container.innerHTML = '';
 
@@ -361,10 +484,13 @@ function loadServices(){
     serviceData[vehicle].forEach(service=>{
 
         container.innerHTML += `
+
         <label class="service-card">
 
             <div>
-                <input type="checkbox"
+
+                <input
+                type="checkbox"
                 value="${service.price}"
                 data-name="${service.name}"
                 onchange="calculateTotal()">
@@ -372,6 +498,7 @@ function loadServices(){
                 <span class="service-name">
                     ${service.name}
                 </span>
+
             </div>
 
             <div class="price">
@@ -388,9 +515,12 @@ function loadServices(){
 function calculateTotal(){
 
     const selected =
-    document.querySelectorAll('.service-card input:checked');
+    document.querySelectorAll(
+    '.service-card input:checked'
+    );
 
     let total = 0;
+
     let details = '';
 
     selected.forEach(item=>{
@@ -399,43 +529,76 @@ function calculateTotal(){
 
         details += `
         <p>
-            ${item.dataset.name} - ₹${item.value}
+            ${item.dataset.name}
+            - ₹${item.value}
         </p>
         `;
     });
 
-    document.getElementById('billDetails').innerHTML =
+    document.getElementById('billDetails')
+    .innerHTML =
     details || 'No services selected';
 
-    document.getElementById('totalAmount').innerText = total;
+    document.getElementById('totalAmount')
+    .innerText = total;
+
+    // PRINT DETAILS
+
+    document.getElementById('printCustomerName')
+    .innerText =
+    document.getElementById('customerName')
+    .value || '-';
+
+    document.getElementById('printPhone')
+    .innerText =
+    document.getElementById('phone')
+    .value || '-';
+
+    document.getElementById('printVehicle')
+    .innerText =
+    document.getElementById('vehicle')
+    .value || '-';
+
+    document.getElementById('printDate')
+    .innerText =
+    new Date().toLocaleString();
 }
 
 function saveBill(){
 
     const name =
-    document.getElementById('customerName').value;
+    document.getElementById('customerName')
+    .value;
 
     const phone =
-    document.getElementById('phone').value;
+    document.getElementById('phone')
+    .value;
 
     const vehicle =
-    document.getElementById('vehicle').value;
+    document.getElementById('vehicle')
+    .value;
 
     const total =
-    document.getElementById('totalAmount').innerText;
+    document.getElementById('totalAmount')
+    .innerText;
 
     const selected =
-    document.querySelectorAll('.service-card input:checked');
+    document.querySelectorAll(
+    '.service-card input:checked'
+    );
 
-    if(!name || !phone || !vehicle || selected.length === 0){
+    if(!name || !phone || !vehicle ||
+    selected.length === 0){
 
         alert('Please complete all billing details');
+
         return false;
     }
 
     let services = [];
 
     selected.forEach(item=>{
+
         services.push(item.dataset.name);
     });
 
@@ -479,13 +642,21 @@ function renderBills(){
 
         tbody.innerHTML += `
         <tr>
+
             <td>${bill.slNo}</td>
+
             <td>${bill.date}</td>
+
             <td>${bill.name}</td>
+
             <td>${bill.phone}</td>
+
             <td>${bill.vehicle}</td>
+
             <td>${bill.services}</td>
+
             <td>₹${bill.total}</td>
+
         </tr>
         `;
     });
@@ -496,6 +667,7 @@ function printBill(){
     const saved = saveBill();
 
     if(saved){
+
         window.print();
     }
 }
@@ -503,7 +675,9 @@ function printBill(){
 function downloadExcel(){
 
     if(allBills.length === 0){
+
         alert('No bills available');
+
         return;
     }
 
@@ -533,7 +707,9 @@ function searchBills(){
     .toLowerCase();
 
     const rows =
-    document.querySelectorAll('#billTableBody tr');
+    document.querySelectorAll(
+    '#billTableBody tr'
+    );
 
     rows.forEach(row=>{
 
@@ -550,21 +726,28 @@ function searchBills(){
 function sendWhatsApp(){
 
     const name =
-    document.getElementById('customerName').value;
+    document.getElementById('customerName')
+    .value;
 
     const phone =
-    document.getElementById('phone').value;
+    document.getElementById('phone')
+    .value;
 
     const vehicle =
-    document.getElementById('vehicle').value;
+    document.getElementById('vehicle')
+    .value;
 
     const total =
-    document.getElementById('totalAmount').innerText;
+    document.getElementById('totalAmount')
+    .innerText;
 
     const selected =
-    document.querySelectorAll('.service-card input:checked');
+    document.querySelectorAll(
+    '.service-card input:checked'
+    );
 
-    if(!name || !phone || !vehicle || selected.length === 0){
+    if(!name || !phone || !vehicle ||
+    selected.length === 0){
 
         alert('Please complete all billing details');
 
