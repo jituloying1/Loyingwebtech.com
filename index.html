@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VIOMATICS MOTORS Billing</title>
+
+<!-- XLSX Library -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
 <style>
 *{
     margin:0;
@@ -15,15 +19,13 @@
 body{
     background:linear-gradient(135deg,#0f172a,#1e293b);
     min-height:100vh;
-    display:flex;
-    justify-content:center;
-    align-items:center;
     padding:20px;
 }
 
 .container{
     width:100%;
-    max-width:900px;
+    max-width:1100px;
+    margin:auto;
     background:#fff;
     border-radius:20px;
     padding:30px;
@@ -37,7 +39,7 @@ body{
 
 .logo h1{
     color:#0f172a;
-    font-size:35px;
+    font-size:38px;
 }
 
 .logo p{
@@ -152,6 +154,39 @@ button:hover{
     background:#15803d;
 }
 
+.download-btn{
+    background:#ea580c;
+}
+
+.download-btn:hover{
+    background:#c2410c;
+}
+
+.search-box{
+    margin-top:40px;
+}
+
+.search-box input{
+    margin-bottom:15px;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:10px;
+}
+
+table th, table td{
+    border:1px solid #ccc;
+    padding:10px;
+    text-align:left;
+}
+
+table th{
+    background:#0f172a;
+    color:white;
+}
+
 @media(max-width:600px){
     .container{
         padding:20px;
@@ -161,8 +196,40 @@ button:hover{
         font-size:28px;
     }
 }
+
+@media print{
+
+    body{
+        background:white;
+    }
+
+    .buttons,
+    .search-box,
+    #servicesContainer,
+    select,
+    input{
+        display:none;
+    }
+
+    .container{
+        box-shadow:none;
+        border:none;
+    }
+
+    .print-header{
+        text-align:center;
+        margin-bottom:20px;
+    }
+
+    .print-footer{
+        margin-top:30px;
+        text-align:center;
+        font-size:14px;
+    }
+}
 </style>
 </head>
+
 <body>
 
 <div class="container">
@@ -186,30 +253,77 @@ button:hover{
     <label>Select Vehicle</label>
     <select id="vehicle" onchange="loadServices()">
         <option value="">-- Select Vehicle --</option>
-        <option value="car">Car</option>
-        <option value="bike">Bike / Scooter</option>
-        <option value="tractor">Tractor</option>
+        <option value="Car">Car</option>
+        <option value="Bike / Scooter">Bike / Scooter</option>
+        <option value="Tractor">Tractor</option>
     </select>
 </div>
 
 <div id="servicesContainer" class="services"></div>
 
 <div class="bill-box">
+
+    <div class="print-header">
+        <h2>VIOMATICS MOTORS</h2>
+        <p>Helpline Number: +91 3774354860</p>
+        <p>Emergency Contact Only: 9395870636</p>
+    </div>
+
     <h2>Billing Summary</h2>
+
     <div id="billDetails">No services selected</div>
-    <div class="total">Total: ₹<span id="totalAmount">0</span></div>
+
+    <div class="total">
+        Total: ₹<span id="totalAmount">0</span>
+    </div>
+
+    <div class="print-footer">
+        Thank You For Visiting VIOMATICS MOTORS
+    </div>
+
 </div>
 
 <div class="buttons">
-    <button class="print-btn" onclick="window.print()">Print Bill</button>
+    <button class="print-btn" onclick="printBill()">Print Bill</button>
+
     <button onclick="sendWhatsApp()">Send WhatsApp Bill</button>
+
+    <button class="download-btn" onclick="downloadExcel()">
+        Download Excel Sheet
+    </button>
+</div>
+
+<div class="search-box">
+    <h2>Saved Bills</h2>
+
+    <input type="text" id="searchInput"
+    placeholder="Search by Name, Phone, Date, Amount..."
+    onkeyup="searchBills()">
+
+    <table>
+        <thead>
+            <tr>
+                <th>SL No</th>
+                <th>Date</th>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Vehicle</th>
+                <th>Services</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+
+        <tbody id="billTableBody"></tbody>
+    </table>
 </div>
 
 </div>
 
 <script>
+
 const serviceData = {
-    car:[
+
+    "Car":[
         {name:'Premium Full Wash (Foam + Vacuum)',price:300},
         {name:'Interior Polishing',price:50},
         {name:'Exterior Polishing',price:100},
@@ -217,7 +331,7 @@ const serviceData = {
         {name:'Vacuuming Only',price:50}
     ],
 
-    tractor:[
+    "Tractor":[
         {name:'Premium Full Wash (Foam + Vacuum)',price:300},
         {name:'Interior Polishing',price:50},
         {name:'Exterior Polishing',price:100},
@@ -225,13 +339,18 @@ const serviceData = {
         {name:'Vacuuming Only',price:50}
     ],
 
-    bike:[
+    "Bike / Scooter":[
         {name:'Wash',price:70},
         {name:'Polishing',price:30}
     ]
 };
 
+let allBills = JSON.parse(localStorage.getItem('viomaticsBills')) || [];
+
+renderBills();
+
 function loadServices(){
+
     const vehicle = document.getElementById('vehicle').value;
     const container = document.getElementById('servicesContainer');
 
@@ -239,15 +358,27 @@ function loadServices(){
 
     if(!vehicle) return;
 
-    serviceData[vehicle].forEach((service,index)=>{
+    serviceData[vehicle].forEach(service=>{
+
         container.innerHTML += `
-            <label class="service-card">
-                <div>
-                    <input type="checkbox" value="${service.price}" data-name="${service.name}" onchange="calculateTotal()">
-                    <span class="service-name">${service.name}</span>
-                </div>
-                <div class="price">₹${service.price}</div>
-            </label>
+        <label class="service-card">
+
+            <div>
+                <input type="checkbox"
+                value="${service.price}"
+                data-name="${service.name}"
+                onchange="calculateTotal()">
+
+                <span class="service-name">
+                    ${service.name}
+                </span>
+            </div>
+
+            <div class="price">
+                ₹${service.price}
+            </div>
+
+        </label>
         `;
     });
 
@@ -255,48 +386,217 @@ function loadServices(){
 }
 
 function calculateTotal(){
-    const checkboxes = document.querySelectorAll('.service-card input[type="checkbox"]:checked');
+
+    const selected =
+    document.querySelectorAll('.service-card input:checked');
+
     let total = 0;
     let details = '';
 
-    checkboxes.forEach(box=>{
-        total += parseInt(box.value);
-        details += `<p>${box.dataset.name} - ₹${box.value}</p>`;
+    selected.forEach(item=>{
+
+        total += Number(item.value);
+
+        details += `
+        <p>
+            ${item.dataset.name} - ₹${item.value}
+        </p>
+        `;
     });
 
+    document.getElementById('billDetails').innerHTML =
+    details || 'No services selected';
+
     document.getElementById('totalAmount').innerText = total;
-    document.getElementById('billDetails').innerHTML = details || 'No services selected';
+}
+
+function saveBill(){
+
+    const name =
+    document.getElementById('customerName').value;
+
+    const phone =
+    document.getElementById('phone').value;
+
+    const vehicle =
+    document.getElementById('vehicle').value;
+
+    const total =
+    document.getElementById('totalAmount').innerText;
+
+    const selected =
+    document.querySelectorAll('.service-card input:checked');
+
+    if(!name || !phone || !vehicle || selected.length === 0){
+
+        alert('Please complete all billing details');
+        return false;
+    }
+
+    let services = [];
+
+    selected.forEach(item=>{
+        services.push(item.dataset.name);
+    });
+
+    const bill = {
+
+        slNo: allBills.length + 1,
+
+        date: new Date().toLocaleString(),
+
+        name,
+
+        phone,
+
+        vehicle,
+
+        services: services.join(', '),
+
+        total
+    };
+
+    allBills.push(bill);
+
+    localStorage.setItem(
+        'viomaticsBills',
+        JSON.stringify(allBills)
+    );
+
+    renderBills();
+
+    return true;
+}
+
+function renderBills(){
+
+    const tbody =
+    document.getElementById('billTableBody');
+
+    tbody.innerHTML = '';
+
+    allBills.forEach(bill=>{
+
+        tbody.innerHTML += `
+        <tr>
+            <td>${bill.slNo}</td>
+            <td>${bill.date}</td>
+            <td>${bill.name}</td>
+            <td>${bill.phone}</td>
+            <td>${bill.vehicle}</td>
+            <td>${bill.services}</td>
+            <td>₹${bill.total}</td>
+        </tr>
+        `;
+    });
+}
+
+function printBill(){
+
+    const saved = saveBill();
+
+    if(saved){
+        window.print();
+    }
+}
+
+function downloadExcel(){
+
+    if(allBills.length === 0){
+        alert('No bills available');
+        return;
+    }
+
+    const worksheet =
+    XLSX.utils.json_to_sheet(allBills);
+
+    const workbook =
+    XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(
+        workbook,
+        worksheet,
+        "Bills"
+    );
+
+    XLSX.writeFile(
+        workbook,
+        "VIOMATICS_MOTORS_BILLS.xlsx"
+    );
+}
+
+function searchBills(){
+
+    const value =
+    document.getElementById('searchInput')
+    .value
+    .toLowerCase();
+
+    const rows =
+    document.querySelectorAll('#billTableBody tr');
+
+    rows.forEach(row=>{
+
+        const text =
+        row.innerText.toLowerCase();
+
+        row.style.display =
+        text.includes(value)
+        ? ''
+        : 'none';
+    });
 }
 
 function sendWhatsApp(){
-    const name = document.getElementById('customerName').value;
-    const phone = document.getElementById('phone').value;
-    const vehicle = document.getElementById('vehicle').value;
-    const total = document.getElementById('totalAmount').innerText;
 
-    const selected = document.querySelectorAll('.service-card input[type="checkbox"]:checked');
+    const name =
+    document.getElementById('customerName').value;
+
+    const phone =
+    document.getElementById('phone').value;
+
+    const vehicle =
+    document.getElementById('vehicle').value;
+
+    const total =
+    document.getElementById('totalAmount').innerText;
+
+    const selected =
+    document.querySelectorAll('.service-card input:checked');
 
     if(!name || !phone || !vehicle || selected.length === 0){
+
         alert('Please complete all billing details');
+
         return;
     }
 
     let serviceList = '';
 
     selected.forEach((item,index)=>{
-        serviceList += `${index+1}. ${item.dataset.name} - ₹${item.value}%0A`;
+
+        serviceList +=
+        `${index+1}. ${item.dataset.name} - ₹${item.value}%0A`;
     });
 
-    const message = `*VIOMATICS MOTORS BILL*%0A%0ACustomer Name: ${name}%0APhone: ${phone}%0AVehicle: ${vehicle}%0A%0AServices:%0A${serviceList}%0ATotal Amount: ₹${total}%0A%0AThank You For Visiting VIOMATICS MOTORS`;
+    const message =
 
-    // Send to customer WhatsApp
-    window.open(`https://wa.me/91${phone}?text=${message}`,'_blank');
+`*VIOMATICS MOTORS BILL*%0A
+Customer Name: ${name}%0A
+Phone: ${phone}%0A
+Vehicle: ${vehicle}%0A%0A
+Services:%0A${serviceList}%0A
+Total Amount: ₹${total}%0A%0A
+Helpline: +91 3774354860%0A
+Emergency Contact: 9395870636%0A%0A
+Thank You For Visiting VIOMATICS MOTORS`;
 
-    // Open WhatsApp Group Invite
-    setTimeout(()=>{
-        window.open('https://chat.whatsapp.com/JfaU0QmrDkf3AhQbmxE7n2','_blank');
-    },1000);
+    window.open(
+        `https://wa.me/91${phone}?text=${message}`,
+        '_blank'
+    );
 }
+
 </script>
 
 </body>
